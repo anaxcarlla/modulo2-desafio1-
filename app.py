@@ -1,7 +1,9 @@
 from flask import Flask, request, jsonify
 import sqlite3
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 def init_db():
     with sqlite3.connect("database.db") as conn:
@@ -20,6 +22,7 @@ init_db()
 
 @app.route("/doar", methods=["POST"])
 def doar():
+
     dados = request.get_json()
     titulo = dados.get("titulo")
     categoria = dados.get("categoria")
@@ -30,23 +33,21 @@ def doar():
         return jsonify({"erro": "Todos os campos são obrigatórios."}), 400
 
     with sqlite3.connect("database.db") as conn:
-        cursor = conn.cursor()
-        cursor.execute("""
+
+        conn.execute(f"""
             INSERT INTO LIVROS (titulo, categoria, autor, image_url) 
-            VALUES (?, ?, ?, ?)
-        """, (titulo, categoria, autor, image_url))
+            VALUES ("{titulo}","{categoria}", "{autor}", "{image_url}")
+        """)
         conn.commit()
 
-    return jsonify({"mensagem": "Livro cadastrado com sucesso."}), 201
+    return jsonify({"mensagem": "Livro cadastrado com sucesso!"}), 201
 
 @app.route("/livros", methods=["GET"])
 def listar_livros():
     with sqlite3.connect("database.db") as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM LIVROS")
-        livros = cursor.fetchall()
+        livros = conn.execute("SELECT * FROM LIVROS").fetchall()
 
-        lista_livros = []
+        livros_formatados = []
         for item in livros:
             dicionario_livros = {
                 "id": item[0],
@@ -55,9 +56,9 @@ def listar_livros():
                 "autor": item[3],
                 "image_url": item[4]  # Nome corrigido para manter a coerência
             }
-            lista_livros.append(dicionario_livros)
+            livros_formatados.append(dicionario_livros)
 
-    return jsonify(lista_livros), 200  # Retorna JSON com status HTTP 200
+    return jsonify(livros_formatados), 200  # Retorna JSON com status HTTP 200
 
 if __name__ == "__main__":
     app.run(debug=True)
